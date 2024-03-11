@@ -105,6 +105,11 @@ class RansomwareGUI(QMainWindow):
         self.progress_bars = [QProgressBar(self) for _ in range(3)]
         for progress_bar in self.progress_bars:
             self.layout.addWidget(progress_bar)
+            self.setStyleSheet("""
+                QProgressBar{
+                    color: #fff;                                
+                }
+            """)
 
         # Add continue button with hover effect
         continue_button = QPushButton('Continue', self)
