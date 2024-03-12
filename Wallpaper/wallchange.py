@@ -18,7 +18,7 @@ def set_wallpaper(image_filename):
 
 if __name__ == "__main__":
     # Specify the filename of the image within the directory
-    image_filename = "rain.jpg"
+    image_filename = "your_file_name"
 
     # Call the function to set the wallpaper
     set_wallpaper(image_filename)
